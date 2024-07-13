@@ -1,6 +1,7 @@
 # expt-blockchain-in-golang
  Experiment with blockchain from scratch using golang
 
+(PLN-STAGES)
 #### Stage 1
 - Setup basic structure and adding new blocks.
 - Store blockchain in a DB.
@@ -21,7 +22,7 @@
 - Update NewBlock() to get UTXOs from pool.
 
 #### Stage 3
-- Nodes system.
+- Node system.
 - Broadcasting.
 - Block validation.
 
