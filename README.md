@@ -3,10 +3,10 @@
 
  Used BoltDB as it's easy to install with go application.
 
-(PLN-STAGES)
+(code: PLN-STAGES)
 #### Stage 1
-- Setup basic structure and adding new blocks.
-- Store blockchain in a DB.
+- :white_check_mark: Setup basic structure and adding new blocks.
+- :white_check_mark: Store blockchain in a DB.
 - Implement PoW.
 - Mining process.
 - Implement addresses and transactions.
