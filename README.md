@@ -1,6 +1,8 @@
 # expt-blockchain-in-golang
  Experiment with blockchain from scratch using golang
 
+ Used BoltDB as it's easy to install with go application.
+
 (PLN-STAGES)
 #### Stage 1
 - Setup basic structure and adding new blocks.
