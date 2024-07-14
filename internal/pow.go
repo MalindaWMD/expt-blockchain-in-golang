@@ -35,6 +35,18 @@ func Calculate(block *Block) ([32]byte, int) {
 	return hash, nonce
 }
 
+func Validate(block *Block) bool {
+	var hash [32]byte
+	var hashInInt big.Int
+	data := prepareData(block, block.Nonce)
+	hash = sha256.Sum256(data)
+	hashInInt.SetBytes(hash[:])
+
+	target := getTarget()
+
+	return hashInInt.Cmp(target) == -1
+}
+
 func getTarget() *big.Int {
 	target := big.NewInt(1)
 	target = target.Lsh(target, uint(256-difficulty))

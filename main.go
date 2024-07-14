@@ -8,7 +8,7 @@ func main() {
 	bc := internal.NewBlockchain()
 	defer bc.DB.Close()
 
-	// bc.AddBlock([]string{"Sending more money"})
+	bc.AddBlock([]string{"Sending more money"})
 
 	bc.Print()
 }

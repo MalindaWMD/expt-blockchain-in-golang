@@ -75,6 +75,10 @@ func (bc *Blockchain) AddBlock(tx []string) {
 	block.Hash = hash[:]
 	block.Nonce = nonce
 
+	// Just calling Validate() here for now.
+	// TODO: implement it when a block PoW should be validated after broadcasting it.
+	log.Println("Block validity:", Validate(block))
+
 	log.Println("Updating db")
 	bc.DB.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
