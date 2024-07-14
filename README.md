@@ -1,9 +1,12 @@
 # expt-blockchain-in-golang
  Experiment with blockchain from scratch using golang
 
+ Used BoltDB as it's easy to install with go application.
+
+(code: PLN-STAGES)
 #### Stage 1
-- Setup basic structure and adding new blocks.
-- Store blockchain in a DB.
+- :white_check_mark: Setup basic structure and adding new blocks.
+- :white_check_mark: Store blockchain in a DB.
 - Implement PoW.
 - Mining process.
 - Implement addresses and transactions.
@@ -21,7 +24,7 @@
 - Update NewBlock() to get UTXOs from pool.
 
 #### Stage 3
-- Nodes system.
+- Node system.
 - Broadcasting.
 - Block validation.
 

@@ -3,13 +3,10 @@ package internal
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 	"strconv"
 	"time"
 )
-
-type Blockchain struct {
-	Blocks []*Block
-}
 
 type Block struct {
 	PrevHash     []byte
@@ -17,32 +14,6 @@ type Block struct {
 	Timestamp    int64
 	Nonce        int
 	Transactions []string
-}
-
-func NewBlockchain() *Blockchain {
-	// create new blockchain
-	bc := &Blockchain{
-		Blocks: []*Block{},
-	}
-
-	if len(bc.Blocks) == 0 {
-		bc.AddBlock([]string{"Genesis block"})
-	}
-
-	return bc
-}
-
-func (bc *Blockchain) AddBlock(tx []string) {
-	// checking if we need genesis block
-	var prevHash []byte
-	if len(bc.Blocks) > 0 {
-		prevBlock := bc.Blocks[len(bc.Blocks)-1]
-		prevHash = prevBlock.Hash
-	}
-
-	b := NewBlock(prevHash, tx)
-
-	bc.Blocks = append(bc.Blocks, b)
 }
 
 func NewBlock(prevHash []byte, tx []string) *Block {
@@ -64,4 +35,31 @@ func NewBlock(prevHash []byte, tx []string) *Block {
 	}
 
 	return b
+}
+
+func SerializeBlock(b *Block) []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(b)
+	if err != nil {
+		return nil
+	}
+
+	return buf.Bytes()
+}
+
+// TODO: re-use buffer???
+func DeeserializeBlockData(data []byte) *Block {
+	var buf bytes.Buffer
+	buf.Write(data)
+
+	var block Block
+
+	dec := gob.NewDecoder(&buf)
+	err := dec.Decode(&block)
+	if err != nil {
+		return nil
+	}
+
+	return &block
 }
