@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/MalindaWMD/expt-blockchain-in-golang/cmd/internal"
+	"github.com/MalindaWMD/expt-blockchain-in-golang/internal"
 )
 
 func main() {
 	bc := internal.NewBlockchain()
-
-	bc.AddBlock([]string{"Send 10 to Malinda"})
 
 	for _, b := range bc.Blocks {
 		tm := time.Unix(b.Timestamp, 0)
