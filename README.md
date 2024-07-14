@@ -7,7 +7,7 @@
 #### Stage 1
 - :white_check_mark: Setup basic structure and adding new blocks.
 - :white_check_mark: Store blockchain in a DB.
-- Implement PoW.
+- :white_check_mark: Implement PoW.
 - Mining process.
 - Implement addresses and transactions.
     - Address generation(withtin the app for now).
@@ -27,7 +27,7 @@
 - Node system.
 - Broadcasting.
 - Block validation.
-
+- Handle concurrency? (code: PNL-CONCURRENCY)
 
 ### Resources used
 - 

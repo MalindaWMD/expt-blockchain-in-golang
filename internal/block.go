@@ -2,9 +2,7 @@ package internal
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/gob"
-	"strconv"
 	"time"
 )
 
@@ -19,16 +17,10 @@ type Block struct {
 func NewBlock(prevHash []byte, tx []string) *Block {
 	// Prepare data
 	timestamp := time.Now().Unix()
-	data := bytes.Join(
-		[][]byte{prevHash, []byte(strconv.FormatInt(timestamp, 10))},
-		[]byte{},
-	)
-	hash := sha256.Sum256(data)
 
 	// new block
 	b := &Block{
 		PrevHash:     prevHash,
-		Hash:         hash[:],
 		Timestamp:    timestamp,
 		Nonce:        0,
 		Transactions: tx,
