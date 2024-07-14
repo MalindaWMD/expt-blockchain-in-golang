@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/boltdb/bolt"
 )
@@ -57,6 +59,7 @@ func NewBlockchain() *Blockchain {
 }
 
 func (bc *Blockchain) AddBlock(tx []string) {
+	log.Println("Adding new block.")
 	// checking if we need genesis block
 	var prevHash []byte
 	if len(bc.Blocks) > 0 {
@@ -66,6 +69,13 @@ func (bc *Blockchain) AddBlock(tx []string) {
 
 	block := NewBlock(prevHash, tx)
 
+	log.Println("Calculating PoW")
+	// run PoW
+	hash, nonce := Calculate(block)
+	block.Hash = hash[:]
+	block.Nonce = nonce
+
+	log.Println("Updating db")
 	bc.DB.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 		if err != nil {
@@ -79,4 +89,15 @@ func (bc *Blockchain) AddBlock(tx []string) {
 	})
 
 	bc.Blocks = append(bc.Blocks, block)
+}
+
+func (bc *Blockchain) Print() {
+	for _, b := range bc.Blocks {
+		tm := time.Unix(b.Timestamp, 0)
+		fmt.Printf("Time\t\t: %s\n", tm)
+		fmt.Printf("Prev. Hash\t: %x\n", b.PrevHash)
+		fmt.Printf("Hash\t\t: %x\n", b.Hash)
+		fmt.Printf("Txs\t\t: %s\n", b.Transactions)
+		fmt.Printf("Nonce\t\t: %d\n\n", b.Nonce)
+	}
 }
