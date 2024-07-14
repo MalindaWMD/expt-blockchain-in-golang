@@ -9,6 +9,7 @@ import (
 
 func main() {
 	bc := internal.NewBlockchain()
+	defer bc.DB.Close()
 
 	for _, b := range bc.Blocks {
 		tm := time.Unix(b.Timestamp, 0)

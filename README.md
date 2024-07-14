@@ -27,7 +27,7 @@
 - Node system.
 - Broadcasting.
 - Block validation.
-
+- Handle concurrency? (code: PNL-CONCURRENCY)
 
 ### Resources used
 - 

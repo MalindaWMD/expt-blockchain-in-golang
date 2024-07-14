@@ -19,7 +19,6 @@ func NewBlockchain() *Blockchain {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 
 	var blocks []*Block
 
