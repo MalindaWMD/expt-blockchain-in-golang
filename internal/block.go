@@ -2,7 +2,9 @@ package internal
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
+	"strconv"
 	"time"
 )
 
@@ -29,7 +31,47 @@ func NewBlock(prevHash []byte, tx []string) *Block {
 	return b
 }
 
-func SerializeBlock(b *Block) []byte {
+func GenesisBlock() *Block {
+	genesis := NewBlock([]byte{}, []string{"Genesis block tx"})
+	hashData := genesis.PrepareData(genesis.Nonce)
+
+	hash := sha256.Sum256(hashData)
+
+	genesis.Hash = hash[:]
+
+	return genesis
+}
+
+func (b *Block) Mine() *Block {
+	hash, nonce := Calculate(b)
+	b.Hash = hash[:]
+	b.Nonce = nonce
+
+	return b
+}
+
+func (b *Block) PrepareData(nonce int) []byte {
+	data := bytes.Join([][]byte{
+		b.PrevHash,
+		b.HashTransactions(),
+		[]byte(strconv.FormatInt(b.Timestamp, 10)),
+		[]byte(strconv.Itoa(difficulty)),
+		[]byte(strconv.Itoa(nonce)),
+	}, []byte{})
+
+	return data
+}
+
+// TODO: implement proper hashing.
+// for now, we just serialize and hash.
+func (b *Block) HashTransactions() []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	enc.Encode(b.Transactions)
+	return buf.Bytes()
+}
+
+func (b *Block) SerializeBlock() []byte {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(b)
@@ -41,7 +83,7 @@ func SerializeBlock(b *Block) []byte {
 }
 
 // TODO: re-use buffer???
-func DeeserializeBlockData(data []byte) *Block {
+func DeserializeBlockData(data []byte) *Block {
 	var buf bytes.Buffer
 	buf.Write(data)
 
