@@ -31,4 +31,4 @@
 - Handle concurrency? (code: PNL-CONCURRENCY)
 
 ### Resources used
-- 
+- https://jeiwan.net/posts/building-blockchain-in-go-part-1
