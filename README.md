@@ -10,7 +10,8 @@
 - :white_check_mark: Implement PoW.
 - Mining process.
 - Implement addresses and transactions.
-    - Address generation(withtin the app for now).
+    - :white_check_mark: Address generation(withtin the app for now).
+        *Basic version for now. Wallets should be implemented.*
     - Basic transactions setup.
     - Signing transactions.
 - Transaction verification.(In the mining process for now)
