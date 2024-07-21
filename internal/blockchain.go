@@ -148,11 +148,18 @@ func (bc *Blockchain) Blocks() []*Block {
 	bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
 
-		c := b.Cursor()
+		hash := bc.Tip
 
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			block := DeserializeBlockData(v)
+		for {
+			blockData := b.Get(hash)
+			if blockData == nil {
+				break
+			}
+
+			block := DeserializeBlockData(blockData)
 			blocks = append(blocks, block)
+
+			hash = block.PrevHash
 		}
 
 		return nil
@@ -180,14 +187,9 @@ func (i *Itarator) Next() *Block {
 }
 
 func (bc *Blockchain) Print() {
-	i := bc.NewItarator()
+	blocks := bc.Blocks()
 
-	for {
-		b := i.Next()
-		if b == nil {
-			break
-		}
-
+	for _, b := range blocks {
 		tm := time.Unix(b.Timestamp, 0)
 		fmt.Printf("Time\t\t: %s\n", tm)
 		fmt.Printf("Prev. Hash\t: %x\n", b.PrevHash)

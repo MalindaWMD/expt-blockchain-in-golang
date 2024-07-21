@@ -6,10 +6,8 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"errors"
-	"log"
+	"fmt"
 	"slices"
-
-	"golang.org/x/crypto/ripemd160"
 )
 
 const reward = 10
@@ -45,6 +43,8 @@ type TxOutput struct {
 // NOTE: We'll ust pubkeyhas for now, will implement addresses later
 func (bc *Blockchain) NewTransaction(from, to []byte, amount int, fromPubKey []byte) (*Transaction, error) {
 	utxos, balance := bc.GetUTXOs(from)
+
+	fmt.Printf("Trx: From: %x => To: %x\n", from, to)
 
 	if amount > balance {
 		return nil, errors.New("insufficiant balance")
@@ -128,15 +128,27 @@ func (bc *Blockchain) NewCoinbaseTransaction(pubkeyhash []byte, fromPubKey []byt
 }
 
 func (bc *Blockchain) GetUTXOs(pubkeyhash []byte) ([]*Transaction, int) {
+	spentOutputs := make(map[string][]int)
 	unspentTransactions := []*Transaction{}
 	balance := 0
 
 	blocks := bc.Blocks()
-	spentOutputs := getSpentOutputs(blocks, pubkeyhash)
+	// spentOutputs := getSpentOutputs(blocks, pubkeyhash)
 
 	for _, block := range blocks {
 		for _, tx := range block.Transactions {
 			txId := hex.EncodeToString(tx.ID)
+
+			for _, i := range tx.Inputs {
+				pubHash := GetPubKeyHash(i.PublicKey)
+				if !bytes.Equal(pubHash, pubkeyhash) {
+					continue
+				}
+
+				txId := hex.EncodeToString(i.TxId)
+				spentOutputs[txId] = append(spentOutputs[txId], i.OutIdx)
+			}
+
 			for idx, o := range tx.Outputs {
 				if !slices.Contains(spentOutputs[txId], idx) {
 					// check if the output belongs to the sender.
@@ -168,33 +180,22 @@ func (tx *Transaction) SetId() {
 	tx.ID = id[:]
 }
 
-func getSpentOutputs(blocks []*Block, fromHash []byte) map[string][]int {
-	spentOutputs := make(map[string][]int)
+// func getSpentOutputs(blocks []*Block, fromHash []byte) map[string][]int {
+// 	spentOutputs := make(map[string][]int)
 
-	for _, block := range blocks {
-		for _, tx := range block.Transactions {
-			for _, i := range tx.Inputs {
-				pubHash := getPubKeyHash(i.PublicKey)
-				if !bytes.Equal(pubHash, fromHash) {
-					continue
-				}
+// 	for _, block := range blocks {
+// 		for _, tx := range block.Transactions {
+// 			for _, i := range tx.Inputs {
+// 				pubHash := GetPubKeyHash(i.PublicKey)
+// 				if !bytes.Equal(pubHash, fromHash) {
+// 					continue
+// 				}
 
-				txId := hex.EncodeToString(i.TxId)
-				spentOutputs[txId] = append(spentOutputs[txId], i.OutIdx)
-			}
-		}
-	}
+// 				txId := hex.EncodeToString(i.TxId)
+// 				spentOutputs[txId] = append(spentOutputs[txId], i.OutIdx)
+// 			}
+// 		}
+// 	}
 
-	return spentOutputs
-}
-
-func getPubKeyHash(pub []byte) []byte {
-	shaHash := sha256.Sum256(pub)
-	ripemd := ripemd160.New()
-	_, err := ripemd.Write(shaHash[:])
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return ripemd.Sum(nil)
-}
+// 	return spentOutputs
+// }
