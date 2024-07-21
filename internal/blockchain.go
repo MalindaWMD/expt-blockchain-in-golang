@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -15,8 +16,9 @@ const bucketName = "blocks"
 const metadataBucket = "metadata"
 
 type Blockchain struct {
-	DB  *bolt.DB
-	Tip []byte
+	DB   *bolt.DB
+	Tip  []byte
+	lock sync.Mutex
 }
 
 type Itarator struct {
@@ -36,16 +38,21 @@ func NewBlockchain() *Blockchain {
 	}
 
 	var tip []byte
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(metadataBucket))
 		tip = b.Get([]byte("latest"))
 		return nil
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	return &Blockchain{
+	bc := &Blockchain{
 		DB:  db,
 		Tip: tip,
 	}
+
+	return bc
 }
 
 func initBlockchain() *Blockchain {
@@ -53,8 +60,10 @@ func initBlockchain() *Blockchain {
 	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
+		return nil
 	}
 
+	log.Println("Creating genesis block")
 	genesis := GenesisBlock()
 
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -85,7 +94,7 @@ func initBlockchain() *Blockchain {
 	return bc
 }
 
-func (bc *Blockchain) AddBlock(tx []string) *Block {
+func (bc *Blockchain) AddBlock(tx []*Transaction) *Block {
 	log.Println("Adding new block.")
 
 	block := NewBlock(bc.Tip, tx)
@@ -99,7 +108,7 @@ func (bc *Blockchain) AddBlock(tx []string) *Block {
 	block = block.Mine()
 
 	log.Println("Updating db")
-	bc.DB.Update(func(tx *bolt.Tx) error {
+	err := bc.DB.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 		if err != nil {
 			return err
@@ -111,13 +120,14 @@ func (bc *Blockchain) AddBlock(tx []string) *Block {
 		// We need to keep the latest hash we have added in order to set the tip.
 		// Cannot get the last one since BoltDB is byte-sorted.
 		b = tx.Bucket([]byte(metadataBucket))
-		if err != nil {
-			return err
-		}
 		b.Put([]byte("latest"), block.Hash)
 
 		return nil
 	})
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
 
 	bc.Tip = block.Hash
 
@@ -125,12 +135,30 @@ func (bc *Blockchain) AddBlock(tx []string) *Block {
 }
 
 func (bc *Blockchain) NewItarator() *Itarator {
-	tip := bc.Tip
-
 	return &Itarator{
 		DB:          bc.DB,
-		CurrentHash: tip,
+		CurrentHash: bc.Tip,
 	}
+}
+
+// TODO: Implement a cursor that'll get blocks in added order.
+func (bc *Blockchain) Blocks() []*Block {
+	var blocks []*Block
+
+	bc.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			block := DeserializeBlockData(v)
+			blocks = append(blocks, block)
+		}
+
+		return nil
+	})
+
+	return blocks
 }
 
 func (i *Itarator) Next() *Block {
@@ -164,7 +192,7 @@ func (bc *Blockchain) Print() {
 		fmt.Printf("Time\t\t: %s\n", tm)
 		fmt.Printf("Prev. Hash\t: %x\n", b.PrevHash)
 		fmt.Printf("Hash\t\t: %x\n", b.Hash)
-		fmt.Printf("Txs\t\t: %s\n", b.Transactions)
+		fmt.Printf("Txs\t\t: %v\n", b.Transactions)
 		fmt.Printf("Nonce\t\t: %d\n\n", b.Nonce)
 	}
 }
