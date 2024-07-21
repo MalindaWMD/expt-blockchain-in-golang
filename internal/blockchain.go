@@ -1,10 +1,13 @@
 package internal
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -166,6 +169,53 @@ func (bc *Blockchain) Blocks() []*Block {
 	})
 
 	return blocks
+}
+
+func (bc *Blockchain) GetUTXOs(pubkeyhash []byte) ([]*Transaction, int) {
+	spentOutputs := make(map[string][]int)
+	unspentTransactions := []*Transaction{}
+	balance := 0
+
+	blocks := bc.Blocks()
+	// spentOutputs := getSpentOutputs(blocks, pubkeyhash)
+
+	for _, block := range blocks {
+		for _, tx := range block.Transactions {
+			txId := hex.EncodeToString(tx.ID)
+
+			for _, i := range tx.Inputs {
+				pubHash := GetPubKeyHash(i.PublicKey)
+				if !bytes.Equal(pubHash, pubkeyhash) {
+					continue
+				}
+
+				txId := hex.EncodeToString(i.TxId)
+				spentOutputs[txId] = append(spentOutputs[txId], i.OutIdx)
+			}
+
+			for idx, o := range tx.Outputs {
+				if !slices.Contains(spentOutputs[txId], idx) {
+					// check if the output belongs to the sender.
+					// TODO: May be better if we filter this in getSpentOutputs()???
+					if !bytes.Equal(o.PubKeyHash, pubkeyhash) {
+						continue
+					}
+					unspentTransactions = append(unspentTransactions, tx)
+					balance += o.Value
+				}
+			}
+		}
+	}
+
+	return unspentTransactions, balance
+}
+
+func (bc *Blockchain) GetBalance(from string) int {
+	address := GetAddress(from)
+	hash := GetPubKeyHash(address.PublicKey)
+	_, balance := bc.GetUTXOs(hash)
+
+	return balance
 }
 
 func (i *Itarator) Next() *Block {

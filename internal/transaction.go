@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"slices"
 )
 
 const reward = 10
@@ -41,10 +39,18 @@ type TxOutput struct {
 // 	- mine
 
 // NOTE: We'll ust pubkeyhas for now, will implement addresses later
-func (bc *Blockchain) NewTransaction(from, to []byte, amount int, fromPubKey []byte) (*Transaction, error) {
-	utxos, balance := bc.GetUTXOs(from)
+func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction, error) {
 
-	fmt.Printf("Trx: From: %x => To: %x\n", from, to)
+	fmt.Println("Sending...")
+	fmt.Println("\tFrom \t: ", from)
+	fmt.Println("\tTo \t: ", to)
+	fmt.Println("\tAmount \t: ", amount)
+	fmt.Println()
+
+	fromAddr := GetAddress(from)
+	fromPubKeyHash := GetPubKeyHash(fromAddr.PublicKey)
+
+	utxos, balance := bc.GetUTXOs(fromPubKeyHash)
 
 	if amount > balance {
 		return nil, errors.New("insufficiant balance")
@@ -56,7 +62,7 @@ func (bc *Blockchain) NewTransaction(from, to []byte, amount int, fromPubKey []b
 	calculatedAmount := 0
 	for _, tx := range utxos {
 		for idx, o := range tx.Outputs {
-			if !bytes.Equal(o.PubKeyHash, from) {
+			if !bytes.Equal(o.PubKeyHash, fromPubKeyHash) {
 				continue
 			}
 
@@ -64,7 +70,7 @@ func (bc *Blockchain) NewTransaction(from, to []byte, amount int, fromPubKey []b
 				TxId:      tx.ID,
 				OutIdx:    idx,
 				Signature: []byte("ABC123"),
-				PublicKey: fromPubKey,
+				PublicKey: fromAddr.PublicKey,
 			})
 
 			calculatedAmount += o.Value
@@ -75,16 +81,17 @@ func (bc *Blockchain) NewTransaction(from, to []byte, amount int, fromPubKey []b
 		}
 	}
 
+	toAddr := GetAddress(to)
 	outputs = append(outputs, &TxOutput{
 		Value:      amount,
-		PubKeyHash: to,
+		PubKeyHash: GetPubKeyHash(toAddr.PublicKey),
 	})
 
 	// "change" transaction
 	if calculatedAmount > amount {
 		outputs = append(outputs, &TxOutput{
 			Value:      calculatedAmount - amount,
-			PubKeyHash: from,
+			PubKeyHash: fromPubKeyHash,
 		})
 	}
 
@@ -101,7 +108,7 @@ func (bc *Blockchain) NewTransaction(from, to []byte, amount int, fromPubKey []b
 func (bc *Blockchain) NewCoinbaseTransaction(pubkeyhash []byte, fromPubKey []byte) *Transaction {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
-	enc.Encode("1111111111111111111111111111111111111111111111111111111111111111")
+	enc.Encode("1")
 	encoded := buf.Bytes()
 	hashed := sha256.Sum256(encoded)
 	txId := hashed[:]
@@ -127,45 +134,6 @@ func (bc *Blockchain) NewCoinbaseTransaction(pubkeyhash []byte, fromPubKey []byt
 	}
 }
 
-func (bc *Blockchain) GetUTXOs(pubkeyhash []byte) ([]*Transaction, int) {
-	spentOutputs := make(map[string][]int)
-	unspentTransactions := []*Transaction{}
-	balance := 0
-
-	blocks := bc.Blocks()
-	// spentOutputs := getSpentOutputs(blocks, pubkeyhash)
-
-	for _, block := range blocks {
-		for _, tx := range block.Transactions {
-			txId := hex.EncodeToString(tx.ID)
-
-			for _, i := range tx.Inputs {
-				pubHash := GetPubKeyHash(i.PublicKey)
-				if !bytes.Equal(pubHash, pubkeyhash) {
-					continue
-				}
-
-				txId := hex.EncodeToString(i.TxId)
-				spentOutputs[txId] = append(spentOutputs[txId], i.OutIdx)
-			}
-
-			for idx, o := range tx.Outputs {
-				if !slices.Contains(spentOutputs[txId], idx) {
-					// check if the output belongs to the sender.
-					// TODO: May be better if we filter this in getSpentOutputs()???
-					if !bytes.Equal(o.PubKeyHash, pubkeyhash) {
-						continue
-					}
-					unspentTransactions = append(unspentTransactions, tx)
-					balance += o.Value
-				}
-			}
-		}
-	}
-
-	return unspentTransactions, balance
-}
-
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Inputs) == 1 && tx.Inputs[0].OutIdx == -1
 }
@@ -179,23 +147,3 @@ func (tx *Transaction) SetId() {
 
 	tx.ID = id[:]
 }
-
-// func getSpentOutputs(blocks []*Block, fromHash []byte) map[string][]int {
-// 	spentOutputs := make(map[string][]int)
-
-// 	for _, block := range blocks {
-// 		for _, tx := range block.Transactions {
-// 			for _, i := range tx.Inputs {
-// 				pubHash := GetPubKeyHash(i.PublicKey)
-// 				if !bytes.Equal(pubHash, fromHash) {
-// 					continue
-// 				}
-
-// 				txId := hex.EncodeToString(i.TxId)
-// 				spentOutputs[txId] = append(spentOutputs[txId], i.OutIdx)
-// 			}
-// 		}
-// 	}
-
-// 	return spentOutputs
-// }
