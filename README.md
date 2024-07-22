@@ -16,8 +16,8 @@
     - Signing transactions.
 - Transaction verification.(In the mining process for now)
     - Signature verification.
-    - UTXO validation.
-    - Balance validation.
+    - :white_check_mark: UTXO validation.
+    - :white_check_mark: Balance validation.
 
 #### Stage 2
 - Implement wallets and transfer address generation into wallets.
