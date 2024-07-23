@@ -12,12 +12,12 @@
 - Implement addresses and transactions.
     - :white_check_mark: Address generation(withtin the app for now).
         *Basic version for now. Wallets should be implemented.*
-    - Basic transactions setup.
+    - :white_check_mark: Basic transactions setup.
     - Signing transactions.
 - Transaction verification.(In the mining process for now)
     - Signature verification.
-    - UTXO validation.
-    - Balance validation.
+    - :white_check_mark: UTXO validation.
+    - :white_check_mark: Balance validation.
 
 #### Stage 2
 - Implement wallets and transfer address generation into wallets.

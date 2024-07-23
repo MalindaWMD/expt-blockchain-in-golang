@@ -13,10 +13,10 @@ type Block struct {
 	Hash         []byte
 	Timestamp    int64
 	Nonce        int
-	Transactions []string
+	Transactions []*Transaction
 }
 
-func NewBlock(prevHash []byte, tx []string) *Block {
+func NewBlock(prevHash []byte, txs []*Transaction) *Block {
 	// Prepare data
 	timestamp := time.Now().Unix()
 
@@ -25,14 +25,15 @@ func NewBlock(prevHash []byte, tx []string) *Block {
 		PrevHash:     prevHash,
 		Timestamp:    timestamp,
 		Nonce:        0,
-		Transactions: tx,
+		Transactions: txs,
 	}
 
 	return b
 }
 
 func GenesisBlock() *Block {
-	genesis := NewBlock([]byte{}, []string{"Genesis block tx"})
+	tx := []*Transaction{}
+	genesis := NewBlock([]byte{}, tx)
 	hashData := genesis.PrepareData(genesis.Nonce)
 
 	hash := sha256.Sum256(hashData)

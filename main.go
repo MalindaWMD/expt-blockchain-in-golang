@@ -1,74 +1,51 @@
 package main
 
 import (
-	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/sha256"
+	"fmt"
 	"log"
 
 	"github.com/MalindaWMD/expt-blockchain-in-golang/internal"
-	"github.com/btcsuite/btcutil/base58"
-	"golang.org/x/crypto/ripemd160"
 )
-
-const version = byte(0x00)
 
 func main() {
 	bc := internal.NewBlockchain()
 	defer bc.DB.Close()
 
-	// addr1 := getAddress()
-	// bc.AddBlock([]string{"Sending 1 from: " + addr1})
+	from := "1F24YsuVtXTz6e5d3FvAjxef2d1AbPqVYAoKDhxEiZGdiLxXM5BUKPsN4ZhzcvAvQi7e8XMq"
+	to := "1R5Xq1eGS46yPb7c5GDgGsABAWMkZFs9QDYKM2c84GS2DcLAfEbnbJimtRkbJ87WTYobFMGm"
 
-	addr2 := getAddress()
-	bc.AddBlock([]string{"Sending 3 from: " + addr2})
+	// // 1st time only
+	// ctx := bc.NewCoinbaseTransaction(addr1Pubkeyhash, addr1.PublicKey)
+	// bc.AddBlock([]*internal.Transaction{ctx})
+
+	fmt.Printf("\n%s balance: %d\n", from, bc.GetBalance(from))
+	fmt.Printf("%s balance: %d\n\n", to, bc.GetBalance(to))
+
+	// FROM 1 to 2
+	tx, err := bc.NewTransaction(from, to, 2)
+	if err != nil {
+		log.Println("TX:", err)
+	}
+	if tx != nil {
+		bc.AddBlock([]*internal.Transaction{tx})
+	}
+
+	// // FROM 2 to 1
+	// tx, err = bc.NewTransaction(to, from, 3)
+	// if err != nil {
+	// 	log.Println("TX:", err)
+	// }
+	// if tx != nil {
+	// 	bc.AddBlock([]*internal.Transaction{tx})
+	// }
+
+	// TODO:
+	// Clean up transactions.go
+	// separate addresses
+	//
+
+	fmt.Printf("\n%s balance: %d\n", from, bc.GetBalance(from))
+	fmt.Printf("%s balance: %d\n\n", to, bc.GetBalance(to))
 
 	bc.Print()
-}
-
-// TODO: Address generation should be moved to a wallet.
-// generate address
-func getAddress() string {
-	pubKeyHash := getPubKeyHash()
-	checksum := getChecksum(pubKeyHash)
-
-	payload := bytes.Join([][]byte{
-		{version},
-		pubKeyHash,
-		checksum[:],
-	}, []byte{})
-
-	return base58.Encode(payload)
-}
-
-func getPubKeyHash() []byte {
-	_, pub := getKeyPair()
-
-	shaHash := sha256.Sum256(pub)
-	ripemd := ripemd160.New()
-	_, err := ripemd.Write(shaHash[:])
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return ripemd.Sum(nil)
-}
-
-func getChecksum(pubKeyHash []byte) []byte {
-	first := sha256.Sum256(pubKeyHash)
-	checksum := sha256.Sum256(first[:])
-	return checksum[:]
-}
-
-func getKeyPair() (*ecdsa.PrivateKey, []byte) {
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		log.Fatal("Error generating private key.", err)
-	}
-
-	publicKey := append(privateKey.PublicKey.X.Bytes(), privateKey.PublicKey.Y.Bytes()...)
-
-	return privateKey, publicKey
 }
