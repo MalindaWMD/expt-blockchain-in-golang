@@ -18,6 +18,7 @@
     - Signature verification.
     - :white_check_mark: UTXO validation.
     - :white_check_mark: Balance validation.
+- Block hash using Merkle tree.
 
 #### Stage 2
 - Implement wallets and transfer address generation into wallets.
