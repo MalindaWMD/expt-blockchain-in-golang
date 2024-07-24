@@ -105,7 +105,10 @@ func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction,
 }
 
 // TODO: TO be used in the block assembling stage. but for now we'll just use it directly.
-func (bc *Blockchain) NewCoinbaseTransaction(pubkeyhash []byte, fromPubKey []byte) *Transaction {
+func (bc *Blockchain) NewCoinbaseTransaction(from string) *Transaction {
+	fromAddr := GetAddress(from)
+	fromPubKeyHash := GetPubKeyHash(fromAddr.PublicKey)
+
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	enc.Encode("1")
@@ -117,14 +120,14 @@ func (bc *Blockchain) NewCoinbaseTransaction(pubkeyhash []byte, fromPubKey []byt
 		{
 			TxId:      txId,
 			OutIdx:    -1,
-			PublicKey: fromPubKey,
+			PublicKey: fromAddr.PublicKey,
 		},
 	}
 
 	outputs := []*TxOutput{
 		{
 			Value:      reward,
-			PubKeyHash: pubkeyhash,
+			PubKeyHash: fromPubKeyHash,
 		},
 	}
 	return &Transaction{
