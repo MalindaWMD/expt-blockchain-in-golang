@@ -2,10 +2,13 @@ package internal
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"log"
 )
 
 const reward = 10
@@ -50,7 +53,7 @@ func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction,
 	fromAddr := GetAddress(from)
 	fromPubKeyHash := GetPubKeyHash(fromAddr.PublicKey)
 
-	utxos, balance := bc.GetUTXOs(fromPubKeyHash)
+	utxos, balance := bc.GetUTXOs(fromAddr)
 
 	if amount > balance {
 		return nil, errors.New("insufficiant balance")
@@ -82,9 +85,13 @@ func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction,
 	}
 
 	toAddr := GetAddress(to)
+	toPubKeyhash := GetPubKeyHash(toAddr.PublicKey)
+
+	fmt.Printf("To Public KeyHash: %x \n\n", toPubKeyhash)
+
 	outputs = append(outputs, &TxOutput{
 		Value:      amount,
-		PubKeyHash: GetPubKeyHash(toAddr.PublicKey),
+		PubKeyHash: toPubKeyhash,
 	})
 
 	// "change" transaction
@@ -100,6 +107,7 @@ func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction,
 		Outputs: outputs,
 	}
 	tx.SetId()
+	tx.Sign(&fromAddr.PrivateKey)
 
 	return &tx, nil
 }
@@ -142,11 +150,67 @@ func (tx *Transaction) IsCoinbase() bool {
 }
 
 func (tx *Transaction) SetId() {
+	serialized := tx.Serialize()
+	id := sha256.Sum256(serialized)
+
+	tx.ID = id[:]
+}
+
+func (tx *Transaction) Serialize() []byte {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	enc.Encode(tx)
-	encoded := buf.Bytes()
-	id := sha256.Sum256(encoded)
+	return buf.Bytes()
+}
 
-	tx.ID = id[:]
+func (tx *Transaction) Sign(privateKey *ecdsa.PrivateKey) *Transaction {
+	trimmed := tx.Trim()
+	serialized := trimmed.Serialize()
+	hash := sha256.Sum256(serialized)
+
+	signature, err := ecdsa.SignASN1(rand.Reader, privateKey, hash[:])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tx.Inputs[0].Signature = signature
+
+	return tx
+}
+
+func (tx *Transaction) Verify(publicKey ecdsa.PublicKey) bool {
+	if tx.IsCoinbase() {
+		return true
+	}
+
+	trimmed := tx.Trim()
+	serialized := trimmed.Serialize()
+	hash := sha256.Sum256(serialized)
+
+	signature := tx.Inputs[0].Signature
+
+	return ecdsa.VerifyASN1(&publicKey, hash[:], signature)
+}
+
+func (tx *Transaction) Trim() *Transaction {
+	var inputs []*TxInput
+	var outputs []*TxOutput
+
+	for _, i := range tx.Inputs {
+		ii := TxInput{
+			TxId:   i.TxId,
+			OutIdx: i.OutIdx,
+		}
+		inputs = append(inputs, &ii)
+	}
+
+	for _, o := range tx.Outputs {
+		outputs = append(outputs, &TxOutput{o.Value, o.PubKeyHash})
+	}
+
+	return &Transaction{
+		ID:      tx.ID,
+		Inputs:  inputs,
+		Outputs: outputs,
+	}
 }
