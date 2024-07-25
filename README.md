@@ -15,7 +15,7 @@
         - Addresses are saved in a db(for now).
         - Private keys are encrypted before stoting.
     - :white_check_mark: Basic transactions setup.
-    - Signing transactions.
+    - :white_check_mark: Signing transactions.
 - Transaction verification.(In the mining process for now)
     - Signature verification.
     - :white_check_mark: UTXO validation.
