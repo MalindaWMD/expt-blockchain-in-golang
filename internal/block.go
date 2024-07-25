@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -92,8 +91,6 @@ func (b *Block) GetHash() []byte {
 			break
 		}
 	}
-
-	fmt.Printf("Merkle root: %x\n\n", rootHash)
 
 	return rootHash
 }

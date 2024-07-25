@@ -35,10 +35,6 @@ type DBAddress struct {
 	PublicKey  []byte
 }
 
-type Wallet struct {
-	Addresses map[string]Address
-}
-
 // TODO: Address generation should be moved to a wallet.
 // generate address
 func GetAddress(address string) *Address {
