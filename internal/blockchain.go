@@ -112,6 +112,7 @@ func (bc *Blockchain) AddBlock(tx []*Transaction) *Block {
 	// TODO: Mining process should be separated
 	log.Println("Mining...")
 	block = block.Mine()
+	log.Println("Mining has finished...")
 
 	// TODO: Clean up
 	log.Println("Broadcasting transaction...")

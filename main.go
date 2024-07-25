@@ -35,18 +35,13 @@ func main() {
 	fmt.Printf("%s balance: %d\n\n", to, app.balance(to))
 
 	// FROM 1 to 2
-	app.send(from, to, 2)
+	// app.send(from, to, 2)
 
 	// // FROM 2 to 1
 	app.send(to, from, 2)
 
 	// Initiate mining
-	app.Mine()
-
-	fmt.Printf("\n%s balance: %d\n", from, app.balance(from))
-	fmt.Printf("%s balance: %d\n\n", to, app.balance(to))
-
-	bc.Print()
+	app.MineTransactions()
 
 	// Listening for transaction broadcast
 	go func() {
@@ -62,8 +57,12 @@ func main() {
 
 	// Listening for block broadcast
 	go func() {
+		// fmt.Println(bc.Boradcaster.ListenBlock())
 		for data := range bc.Boradcaster.ListenBlock() {
 			fmt.Println("Received block data:", data)
+
+			fmt.Printf("\n%s balance: %d\n", from, app.balance(from))
+			fmt.Printf("%s balance: %d\n\n", to, app.balance(to))
 		}
 	}()
 
@@ -93,7 +92,7 @@ func (app *App) balance(address string) int {
 }
 
 // TODO: Implement an API to get transactions from mempool and separate mining
-func (app *App) Mine() {
+func (app *App) MineTransactions() {
 	// get transactions from mempool
 	txs := app.pool.Get(3)
 
