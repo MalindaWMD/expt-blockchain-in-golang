@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -150,10 +151,12 @@ func (tx *Transaction) IsCoinbase() bool {
 }
 
 func (tx *Transaction) SetId() {
-	serialized := tx.Serialize()
-	id := sha256.Sum256(serialized)
+	hash := tx.Hash()
+	tx.ID = hash[:]
+}
 
-	tx.ID = id[:]
+func (tx *Transaction) StringId() string {
+	return hex.EncodeToString(tx.ID)
 }
 
 func (tx *Transaction) Serialize() []byte {
@@ -165,10 +168,9 @@ func (tx *Transaction) Serialize() []byte {
 
 func (tx *Transaction) Sign(privateKey *ecdsa.PrivateKey) *Transaction {
 	trimmed := tx.Trim()
-	serialized := trimmed.Serialize()
-	hash := sha256.Sum256(serialized)
+	hash := trimmed.Hash()
 
-	signature, err := ecdsa.SignASN1(rand.Reader, privateKey, hash[:])
+	signature, err := ecdsa.SignASN1(rand.Reader, privateKey, hash)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -184,12 +186,17 @@ func (tx *Transaction) Verify(publicKey ecdsa.PublicKey) bool {
 	}
 
 	trimmed := tx.Trim()
-	serialized := trimmed.Serialize()
-	hash := sha256.Sum256(serialized)
+	hash := trimmed.Hash()
 
 	signature := tx.Inputs[0].Signature
 
-	return ecdsa.VerifyASN1(&publicKey, hash[:], signature)
+	return ecdsa.VerifyASN1(&publicKey, hash, signature)
+}
+
+func (tx *Transaction) Hash() []byte {
+	serialized := tx.Serialize()
+	hash := sha256.Sum256(serialized)
+	return hash[:]
 }
 
 func (tx *Transaction) Trim() *Transaction {
