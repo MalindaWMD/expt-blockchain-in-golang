@@ -104,7 +104,7 @@ func (bc *Blockchain) AddBlock(tx []*Transaction) *Block {
 
 	// Just calling Validate() here for now.
 	// TODO: implement it when a block PoW should be validated after broadcasting it.
-	log.Println("Block validity:", Validate(block))
+	log.Println("Block validity:", block.Validate())
 
 	// TODO: Mining process should be separated
 	log.Println("Mining...")
