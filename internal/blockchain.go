@@ -19,9 +19,10 @@ const bucketName = "blocks"
 const metadataBucket = "metadata"
 
 type Blockchain struct {
-	DB   *bolt.DB
-	Tip  []byte
-	lock sync.Mutex
+	DB          *bolt.DB
+	Tip         []byte
+	Boradcaster *Broadcaster
+	lock        sync.Mutex
 }
 
 type Itarator struct {
@@ -51,8 +52,9 @@ func NewBlockchain() *Blockchain {
 	}
 
 	bc := &Blockchain{
-		DB:  db,
-		Tip: tip,
+		DB:          db,
+		Tip:         tip,
+		Boradcaster: initBroadcaster(),
 	}
 
 	return bc
@@ -90,8 +92,9 @@ func initBlockchain() *Blockchain {
 	}
 
 	bc := &Blockchain{
-		DB:  db,
-		Tip: genesis.Hash,
+		DB:          db,
+		Tip:         genesis.Hash,
+		Boradcaster: initBroadcaster(),
 	}
 
 	return bc
@@ -109,6 +112,14 @@ func (bc *Blockchain) AddBlock(tx []*Transaction) *Block {
 	// TODO: Mining process should be separated
 	log.Println("Mining...")
 	block = block.Mine()
+
+	// TODO: Clean up
+	log.Println("Broadcasting transaction...")
+	txIds := []string{}
+	for _, t := range tx {
+		txIds = append(txIds, t.StringId())
+	}
+	go bc.Boradcaster.Broadcast(txIds)
 
 	log.Println("Updating db")
 	err := bc.DB.Update(func(tx *bolt.Tx) error {

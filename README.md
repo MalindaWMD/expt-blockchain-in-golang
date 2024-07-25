@@ -25,14 +25,15 @@
 
 #### Stage 2
 - ~~Implement wallets and transfer address generation into wallets.~~
-- :white_check_mark: Create transaction pool for UTXOs.
+- :white_check_mark: Create transaction pool for UTXOs(Mempool).
 - ~~Update NewBlock() to get UTXOs from pool.~~
-- Implement a Miner.
+- :white_check_mark: Implement a Miner.
+    - A simple one for now. After mining is completed and data is valid it broadcast TX ids through a channel and listener will remove those from mempool.
 
 #### Stage 3
 - Node system.
 - Broadcasting.
-- Block validation.
+- :white_check_mark: Block validation.
 - Handle concurrency? (code: PNL-CONCURRENCY)
 
 ### Resources used
