@@ -48,15 +48,22 @@ func main() {
 
 	bc.Print()
 
-	// Listening for broadcast
+	// Listening for transaction broadcast
 	go func() {
-		for data := range bc.Boradcaster.Listen() {
+		for data := range bc.Boradcaster.ListenTransaction() {
 			fmt.Println("Received:", data)
 			for _, id := range data {
 				log.Printf("\tRemoving TX: %s from mempool.", id)
 				app.pool.Remove(id)
 			}
 			fmt.Println("Mempool size: ", len(app.pool.Transactions))
+		}
+	}()
+
+	// Listening for block broadcast
+	go func() {
+		for data := range bc.Boradcaster.ListenBlock() {
+			fmt.Println("Received block data:", data)
 		}
 	}()
 

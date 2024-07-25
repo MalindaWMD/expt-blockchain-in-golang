@@ -119,7 +119,7 @@ func (bc *Blockchain) AddBlock(tx []*Transaction) *Block {
 	for _, t := range tx {
 		txIds = append(txIds, t.StringId())
 	}
-	go bc.Boradcaster.Broadcast(txIds)
+	go bc.Boradcaster.BroadcastTransaction(txIds)
 
 	log.Println("Updating db")
 	err := bc.DB.Update(func(tx *bolt.Tx) error {
@@ -144,6 +144,9 @@ func (bc *Blockchain) AddBlock(tx []*Transaction) *Block {
 	}
 
 	bc.Tip = block.Hash
+
+	log.Println("Broadcasting block...")
+	go bc.Boradcaster.BroadcastBlock("Added block: " + hex.EncodeToString(block.Hash))
 
 	return block
 }
