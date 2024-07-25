@@ -24,9 +24,10 @@
 - Implement Merkle proof and verification
 
 #### Stage 2
-- Implement wallets and transfer address generation into wallets.
-- Create transaction pool for UTXOs.
-- Update NewBlock() to get UTXOs from pool.
+- ~~Implement wallets and transfer address generation into wallets.~~
+- :white_check_mark: Create transaction pool for UTXOs.
+- ~~Update NewBlock() to get UTXOs from pool.~~
+- Implement a Miner.
 
 #### Stage 3
 - Node system.
