@@ -12,12 +12,16 @@
 - Implement addresses and transactions.
     - :white_check_mark: Address generation(withtin the app for now).
         *Basic version for now. Wallets should be implemented.*
+        - Addresses are saved in a db(for now).
+        - Private keys are encrypted before stoting.
     - :white_check_mark: Basic transactions setup.
-    - Signing transactions.
+    - :white_check_mark: Signing transactions.
 - Transaction verification.(In the mining process for now)
-    - Signature verification.
+    - :white_check_mark: Signature verification.
     - :white_check_mark: UTXO validation.
     - :white_check_mark: Balance validation.
+- :white_check_mark: Block hash using Merkle tree.
+- Implement Merkle proof and verification
 
 #### Stage 2
 - Implement wallets and transfer address generation into wallets.

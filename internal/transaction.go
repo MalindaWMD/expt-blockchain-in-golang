@@ -2,10 +2,14 @@ package internal
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 )
 
 const reward = 10
@@ -50,7 +54,7 @@ func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction,
 	fromAddr := GetAddress(from)
 	fromPubKeyHash := GetPubKeyHash(fromAddr.PublicKey)
 
-	utxos, balance := bc.GetUTXOs(fromPubKeyHash)
+	utxos, balance := bc.GetUTXOs(fromAddr)
 
 	if amount > balance {
 		return nil, errors.New("insufficiant balance")
@@ -82,9 +86,13 @@ func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction,
 	}
 
 	toAddr := GetAddress(to)
+	toPubKeyhash := GetPubKeyHash(toAddr.PublicKey)
+
+	fmt.Printf("To Public KeyHash: %x \n\n", toPubKeyhash)
+
 	outputs = append(outputs, &TxOutput{
 		Value:      amount,
-		PubKeyHash: GetPubKeyHash(toAddr.PublicKey),
+		PubKeyHash: toPubKeyhash,
 	})
 
 	// "change" transaction
@@ -100,12 +108,16 @@ func (bc *Blockchain) NewTransaction(from, to string, amount int) (*Transaction,
 		Outputs: outputs,
 	}
 	tx.SetId()
+	tx.Sign(&fromAddr.PrivateKey)
 
 	return &tx, nil
 }
 
 // TODO: TO be used in the block assembling stage. but for now we'll just use it directly.
-func (bc *Blockchain) NewCoinbaseTransaction(pubkeyhash []byte, fromPubKey []byte) *Transaction {
+func (bc *Blockchain) NewCoinbaseTransaction(from string) *Transaction {
+	fromAddr := GetAddress(from)
+	fromPubKeyHash := GetPubKeyHash(fromAddr.PublicKey)
+
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	enc.Encode("1")
@@ -117,14 +129,14 @@ func (bc *Blockchain) NewCoinbaseTransaction(pubkeyhash []byte, fromPubKey []byt
 		{
 			TxId:      txId,
 			OutIdx:    -1,
-			PublicKey: fromPubKey,
+			PublicKey: fromAddr.PublicKey,
 		},
 	}
 
 	outputs := []*TxOutput{
 		{
 			Value:      reward,
-			PubKeyHash: pubkeyhash,
+			PubKeyHash: fromPubKeyHash,
 		},
 	}
 	return &Transaction{
@@ -139,11 +151,73 @@ func (tx *Transaction) IsCoinbase() bool {
 }
 
 func (tx *Transaction) SetId() {
+	hash := tx.Hash()
+	tx.ID = hash[:]
+}
+
+func (tx *Transaction) StringId() string {
+	return hex.EncodeToString(tx.ID)
+}
+
+func (tx *Transaction) Serialize() []byte {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	enc.Encode(tx)
-	encoded := buf.Bytes()
-	id := sha256.Sum256(encoded)
+	return buf.Bytes()
+}
 
-	tx.ID = id[:]
+func (tx *Transaction) Sign(privateKey *ecdsa.PrivateKey) *Transaction {
+	trimmed := tx.Trim()
+	hash := trimmed.Hash()
+
+	signature, err := ecdsa.SignASN1(rand.Reader, privateKey, hash)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tx.Inputs[0].Signature = signature
+
+	return tx
+}
+
+func (tx *Transaction) Verify(publicKey ecdsa.PublicKey) bool {
+	if tx.IsCoinbase() {
+		return true
+	}
+
+	trimmed := tx.Trim()
+	hash := trimmed.Hash()
+
+	signature := tx.Inputs[0].Signature
+
+	return ecdsa.VerifyASN1(&publicKey, hash, signature)
+}
+
+func (tx *Transaction) Hash() []byte {
+	serialized := tx.Serialize()
+	hash := sha256.Sum256(serialized)
+	return hash[:]
+}
+
+func (tx *Transaction) Trim() *Transaction {
+	var inputs []*TxInput
+	var outputs []*TxOutput
+
+	for _, i := range tx.Inputs {
+		ii := TxInput{
+			TxId:   i.TxId,
+			OutIdx: i.OutIdx,
+		}
+		inputs = append(inputs, &ii)
+	}
+
+	for _, o := range tx.Outputs {
+		outputs = append(outputs, &TxOutput{o.Value, o.PubKeyHash})
+	}
+
+	return &Transaction{
+		ID:      tx.ID,
+		Inputs:  inputs,
+		Outputs: outputs,
+	}
 }

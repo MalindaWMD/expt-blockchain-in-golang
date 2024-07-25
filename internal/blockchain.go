@@ -171,13 +171,14 @@ func (bc *Blockchain) Blocks() []*Block {
 	return blocks
 }
 
-func (bc *Blockchain) GetUTXOs(pubkeyhash []byte) ([]*Transaction, int) {
+func (bc *Blockchain) GetUTXOs(address *Address) ([]*Transaction, int) {
 	spentOutputs := make(map[string][]int)
 	unspentTransactions := []*Transaction{}
 	balance := 0
 
 	blocks := bc.Blocks()
-	// spentOutputs := getSpentOutputs(blocks, pubkeyhash)
+
+	ownerPubKeyHash := GetPubKeyHash(address.PublicKey)
 
 	for _, block := range blocks {
 		for _, tx := range block.Transactions {
@@ -185,7 +186,12 @@ func (bc *Blockchain) GetUTXOs(pubkeyhash []byte) ([]*Transaction, int) {
 
 			for _, i := range tx.Inputs {
 				pubHash := GetPubKeyHash(i.PublicKey)
-				if !bytes.Equal(pubHash, pubkeyhash) {
+				if !bytes.Equal(pubHash, ownerPubKeyHash) {
+					continue
+				}
+
+				// verify transaction integrity
+				if !tx.Verify(address.PrivateKey.PublicKey) {
 					continue
 				}
 
@@ -196,10 +202,10 @@ func (bc *Blockchain) GetUTXOs(pubkeyhash []byte) ([]*Transaction, int) {
 			for idx, o := range tx.Outputs {
 				if !slices.Contains(spentOutputs[txId], idx) {
 					// check if the output belongs to the sender.
-					// TODO: May be better if we filter this in getSpentOutputs()???
-					if !bytes.Equal(o.PubKeyHash, pubkeyhash) {
+					if !bytes.Equal(o.PubKeyHash, ownerPubKeyHash) {
 						continue
 					}
+
 					unspentTransactions = append(unspentTransactions, tx)
 					balance += o.Value
 				}
@@ -212,8 +218,7 @@ func (bc *Blockchain) GetUTXOs(pubkeyhash []byte) ([]*Transaction, int) {
 
 func (bc *Blockchain) GetBalance(from string) int {
 	address := GetAddress(from)
-	hash := GetPubKeyHash(address.PublicKey)
-	_, balance := bc.GetUTXOs(hash)
+	_, balance := bc.GetUTXOs(address)
 
 	return balance
 }

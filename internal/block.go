@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
+	"log"
 	"strconv"
 	"time"
 )
@@ -27,6 +29,7 @@ func NewBlock(prevHash []byte, txs []*Transaction) *Block {
 		Nonce:        0,
 		Transactions: txs,
 	}
+	b.Hash = b.GetHash()
 
 	return b
 }
@@ -34,21 +37,70 @@ func NewBlock(prevHash []byte, txs []*Transaction) *Block {
 func GenesisBlock() *Block {
 	tx := []*Transaction{}
 	genesis := NewBlock([]byte{}, tx)
-	hashData := genesis.PrepareData(genesis.Nonce)
-
-	hash := sha256.Sum256(hashData)
-
+	data := genesis.PrepareData(genesis.Nonce)
+	hash := sha256.Sum256(data)
 	genesis.Hash = hash[:]
 
 	return genesis
 }
 
 func (b *Block) Mine() *Block {
+	if !b.Validate() {
+		log.Fatal("Block is invalid.")
+		// TODO: Handle this properly
+		// return
+	}
+
 	hash, nonce := Calculate(b)
 	b.Hash = hash[:]
 	b.Nonce = nonce
 
 	return b
+}
+
+func (b *Block) GetHash() []byte {
+	if len(b.Transactions) == 0 {
+		return nil
+	}
+
+	var rootHash []byte
+	hashes := [][]byte{}
+
+	for _, tx := range b.Transactions {
+		hashes = append(hashes, tx.ID)
+	}
+
+	for {
+		if len(hashes)%2 == 1 {
+			hashes = append(hashes, hashes[len(hashes)-1])
+		}
+
+		subHashes := [][]byte{}
+		for i := 0; i < len(hashes); i += 2 {
+			hash1 := hashes[i]
+			hash2 := hashes[i+1]
+
+			joined := bytes.Join([][]byte{hash1, hash2}, []byte{})
+			joinedHash := sha256.Sum256(joined)
+			subHashes = append(subHashes, joinedHash[:])
+		}
+
+		hashes = subHashes
+
+		if len(hashes) == 1 {
+			rootHash = hashes[0]
+			break
+		}
+	}
+
+	fmt.Printf("Merkle root: %x\n\n", rootHash)
+
+	return rootHash
+}
+
+func (b *Block) Validate() bool {
+	newHash := b.GetHash()
+	return bytes.Equal(b.Hash, newHash)
 }
 
 func (b *Block) PrepareData(nonce int) []byte {
