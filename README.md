@@ -38,3 +38,4 @@
 
 ### Resources used
 - https://jeiwan.net/posts/building-blockchain-in-go-part-1
+- https://www.twilio.com/en-us/blog/encrypt-and-decrypt-data-in-go-with-aes-256
