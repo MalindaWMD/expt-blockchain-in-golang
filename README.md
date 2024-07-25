@@ -29,6 +29,7 @@
 - ~~Update NewBlock() to get UTXOs from pool.~~
 - :white_check_mark: Implement a Miner.
     - A simple one for now. After mining is completed and data is valid it broadcast TX ids through a channel and listener will remove those from mempool.
+- Test coverage
 
 #### Stage 3
 - Node system.
@@ -38,3 +39,4 @@
 
 ### Resources used
 - https://jeiwan.net/posts/building-blockchain-in-go-part-1
+- https://www.twilio.com/en-us/blog/encrypt-and-decrypt-data-in-go-with-aes-256
